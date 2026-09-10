@@ -22,7 +22,7 @@ The notebook is structured assignment-style, answering **Q7 to Q29** across Part
 
 | Part | Type | Link |
 |---|---|---|
-| 📄 **Part A — Theory Questions (Q1–Q6)** | PDF | [https://drive.google.com/file/d/1e8s5lINQQPYLdFe0h1nWUxH31wtjyELG/view?usp=sharing](#) |
+| 📄 **Part A — Theory Questions (Q1–Q6)** | PDF | [Part A ](https://drive.google.com/file/d/1e8s5lINQQPYLdFe0h1nWUxH31wtjyELG/view?usp=sharing) |
 | 🎥 **Video Walkthrough** | Video | [Add your video link here](#) |
 
 > ✏️ Replace the `#` above with your actual PDF / Google Drive / YouTube link once uploaded.

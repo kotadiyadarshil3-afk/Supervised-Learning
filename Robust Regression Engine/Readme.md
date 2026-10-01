@@ -18,7 +18,7 @@
 
 | 📄 PDF Report | 🎥 Video Demo |
 | :---: | :---: |
-| [**Part A - Theory Answers (PDF)**](docs/Part_A_Robust_Regression_Engine.pdf) | [![Watch the demo](assets/video_thumbnail.png)](https://YOUR_VIDEO_LINK_HERE) |
+| [**Part A - Theory Answers (PDF)**](https://drive.google.com/file/d/1zf7utkiwYKv0wxVjiRfBckEva30Okfsk/view?usp=sharing) | [![Watch the demo](assets/video_thumbnail.png)](https://drive.google.com/file/d/1dSU8WpWmvEWIvpPI4wI_d5sUdG1pqlZ7/view?usp=sharing) |
 | Regularization, Cross-Validation & Tree-Based Models | Replace `https://YOUR_VIDEO_LINK_HERE` with your YouTube / Google Drive / Loom link |
 
 <!--

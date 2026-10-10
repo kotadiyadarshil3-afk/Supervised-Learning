@@ -5,10 +5,6 @@
 </p>
 
 <p align="center">
-  <img src="images/00_tech_stack.png" alt="Tech stack used in the Risk Alert Classifier project" width="900">
-</p>
-
-<p align="center">
   <img src="https://img.shields.io/badge/Python-3.x-3776AB?logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/scikit--learn-ML-F7931E?logo=scikitlearn&logoColor=white" alt="scikit-learn">
   <img src="https://img.shields.io/badge/imbalanced--learn-SMOTE%20%7C%20ADASYN-E8590C" alt="imbalanced-learn">
@@ -41,10 +37,29 @@
 
 ## 🌈 Project Workflow
 
-<p align="center">
-  <img src="images/00_workflow.png" alt="Colourful end-to-end workflow of the Risk Alert Classifier" width="950">
-</p>
+```mermaid
+flowchart TD
+    A[📂 Load Dataset<br/>4,600 rows × 19 cols] --> B[🔍 Explore Data<br/>Missing values & target balance]
+    B --> C[✂️ Train-Test Split<br/>80% / 20%]
+    C --> D[🧹 Preprocessing<br/>KNN Imputer · Scaler · OneHot]
+    D --> E[📈 Baseline Model<br/>Logistic Regression]
+    E --> F[⚖️ Handle Imbalance<br/>Under · Over · SMOTE · ADASYN]
+    F --> G[🌳 Tree Models<br/>Decision Tree · Random Forest]
+    G --> H[🎛️ Hyperparameter Tuning<br/>RandomizedSearchCV · GridSearchCV]
+    H --> I[📊 Evaluation<br/>Confusion Matrix · ROC-AUC]
+    I --> J[🏆 Final Model Selection<br/>Fewest False Negatives]
 
+    style A fill:#6366F1,color:#fff,stroke:#fff
+    style B fill:#0EA5E9,color:#fff,stroke:#fff
+    style C fill:#14B8A6,color:#fff,stroke:#fff
+    style D fill:#22C55E,color:#fff,stroke:#fff
+    style E fill:#EAB308,color:#fff,stroke:#fff
+    style F fill:#F97316,color:#fff,stroke:#fff
+    style G fill:#EF4444,color:#fff,stroke:#fff
+    style H fill:#EC4899,color:#fff,stroke:#fff
+    style I fill:#A855F7,color:#fff,stroke:#fff
+    style J fill:#8B5CF6,color:#fff,stroke:#fff
+```
 ---
 
 ## 📌 Overview

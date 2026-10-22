@@ -206,19 +206,32 @@ df = pd.read_csv("Message_Intelligence_Dataset_5200 - Message_Intelligence_Datas
 
 #### Q6. Identify input features and target variable
 ```python
-X = df.drop(columns=["spam_label"])
-y = df["spam_label"]
-print(y.value_counts())
+df = pd.read_csv("Message_Intelligence_Dataset_5200 - Message_Intelligence_Dataset_5200.csv")
+
+print("Dataset Shape:", df.shape)
+print("Dataset Columns:", df.columns.tolist())
+
+print("Missing Values in each column:")
+print(df.isnull().sum())
 ```
 **What it does:** Everything except `spam_label` becomes the input `X`; `spam_label` is the target `y`. `value_counts()` shows the class balance (0 → 4,227, 1 → 973).  
 **✅ Conclusion:** There are **15 input features** and **1 target**. The data is **imbalanced** (≈ 81 % not spam, 19 % spam), so accuracy alone can be misleading — precision, recall and F1 must be checked too.
 
 #### Q7. Perform basic data preprocessing
 ```python
-preprocessor = Pipeline([
-    ("imputer", SimpleImputer(strategy="median")),
-    ("scaler",  StandardScaler())
-])
+
+X = df.drop(columns=["spam_label"])
+y = df["spam_label"]
+
+print("Input Features:")
+print(X.columns.tolist())
+
+print("\nTarget Variable:")
+print("risk_status")
+
+print("\nTarget Class Distribution:")
+print(y.value_counts())
+
 ```
 **What it does:** Builds a pipeline that (1) fills missing values with the **median** and (2) standardises every feature to mean 0 / standard deviation 1.  
 **Why median:** It is not affected by outliers. **Why scaling:** KNN and SVM are distance/margin based and would otherwise be dominated by large-valued columns such as `sender_account_age_days`.  
@@ -226,8 +239,18 @@ preprocessor = Pipeline([
 
 #### Q8. Split the dataset into training and testing sets
 ```python
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.20, random_state=42, stratify=y)
+print("Missing values:")
+print(X.isnull().sum())
+
+preprocessor = Pipeline([
+    ("imputer", SimpleImputer(strategy="median")),
+    ("scaler", StandardScaler())
+])
+
+print("\nPreprocessing pipeline created.")
+print("Missing values will be filled using median.")
+print("Features will be scaled using StandardScaler.")
+
 ```
 **What it does:** Splits the data 80 % / 20 %. `stratify=y` keeps the same spam ratio in both parts; `random_state=42` makes the result reproducible.  
 **✅ Conclusion:** **4,160** training samples and **1,040** testing samples, with the same class proportions in both.
@@ -238,21 +261,48 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 #### Q9. Implement a KNN classifier
 ```python
-numeric_cols = X.select_dtypes(include=["number"]).columns
-X = X[numeric_cols]
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42, stratify=y)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.20,
+    random_state=42,
+    stratify=y
+)
+
+print("Training data:", X_train.shape)
+print("Testing data:", X_test.shape)
+
+print("Training samples:", len(X_train))
+print("Testing samples:", len(X_test))
+
 ```
 **What it does:** KNN needs numbers, so only numeric columns are kept (`message_text` and `timestamp` are dropped). The data is split again with 13 numeric features.  
 **✅ Conclusion:** KNN is trained on **13 numerical features** — 4,160 training rows and 1,040 testing rows.
 
 #### Q10. Experiment with different values of K
 ```python
-k_values = [3, 5, 7, 9, 11]
-for k in k_values:
-    model = Pipeline([("preprocessing", preprocessor),
-                      ("classifier", KNeighborsClassifier(n_neighbors=k))])
-    model.fit(X_train, y_train)
-    ...
+numeric_cols = X.select_dtypes(include=["number"]).columns
+
+preprocessor = Pipeline([
+    ("imputer", SimpleImputer(strategy="median")),
+    ("scaler", StandardScaler())
+])
+
+# Keep only numerical columns for KNN
+X = X[numeric_cols]
+
+# Split dataset again
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=0.20,
+    random_state=42,
+    stratify=y
+)
+
+print("Numerical features:", X.columns.tolist())
+print("Training shape:", X_train.shape)
+print("Testing shape:", X_test.shape)
 ```
 **What it does:** Trains KNN with five K values and plots accuracy against K.
 
@@ -264,8 +314,28 @@ for k in k_values:
 
 #### Q11. Analyze how distance metrics affect predictions
 ```python
-for metric in ["euclidean", "manhattan", "minkowski"]:
-    KNeighborsClassifier(n_neighbors=5, metric=metric)
+
+distance_metrics = ["euclidean", "manhattan", "minkowski"]
+
+for metric in distance_metrics:
+    model = Pipeline([
+        ("preprocessing", preprocessor),
+        ("classifier", KNeighborsClassifier(
+            n_neighbors=5,
+            metric=metric
+        ))
+    ])
+
+    model.fit(X_train, y_train)
+    predictions = model.predict(X_test)
+
+    print("\nDistance Metric:", metric)
+    print("Accuracy:",
+          accuracy_score(y_test, predictions))
+    print("F1 Score:",
+          f1_score(y_test, predictions, zero_division=0))
+
+
 ```
 | Metric | Accuracy | F1 Score |
 |---|---|---|
@@ -277,6 +347,39 @@ for metric in ["euclidean", "manhattan", "minkowski"]:
 
 #### Q12. Identify cases where KNN misclassifies messages
 **What it does:** Finds test rows where `y_test != y_pred`, prints the misclassified rows, the confusion matrix and the classification report.
+```
+
+
+knn_model = Pipeline([
+    ("preprocessing", preprocessor),
+    ("classifier", KNeighborsClassifier(n_neighbors=5))
+])
+
+knn_model.fit(X_train, y_train)
+
+y_pred_knn = knn_model.predict(X_test)
+
+y_pred_knn = pd.Series(y_pred_knn, index=X_test.index)
+
+misclassified = X_test[
+    y_test != y_pred_knn
+].copy()
+
+misclassified["Actual"] = y_test.loc[misclassified.index]
+misclassified["Predicted"] = y_pred_knn.loc[misclassified.index]
+
+print("KNN Accuracy:", accuracy_score(y_test, y_pred_knn))
+print("Total Misclassified Messages:", len(misclassified))
+
+print("\nFirst 10 Misclassified Messages:")
+print(misclassified.head(10))
+
+print("\nConfusion Matrix:")
+print(confusion_matrix(y_test, y_pred_knn))
+
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred_knn, zero_division=0))
+```
 
 Confusion Matrix: `[[845, 0], [0, 195]]`  
 **✅ Conclusion:** **0 misclassified messages** — all 845 non-spam and 195 spam test messages are predicted correctly (100 % precision and recall for both classes).
@@ -287,8 +390,40 @@ Confusion Matrix: `[[845, 0], [0, 195]]`
 
 #### Q13. Implement SVM with Linear, RBF and Polynomial kernels
 ```python
-for kernel in ["linear", "rbf", "poly"]:
-    SVC(kernel=kernel, class_weight="balanced")
+
+kernels = ["linear", "rbf", "poly"]
+svm_models = {}
+
+for kernel in kernels:
+    model = Pipeline([
+        ("preprocessing", preprocessor),
+        ("classifier", SVC(
+            kernel=kernel,
+            class_weight="balanced"
+        ))
+    ])
+
+    model.fit(X_train, y_train)
+    predictions = model.predict(X_test)
+
+    svm_models[kernel] = model
+
+    print("\nKernel:", kernel)
+    print("Accuracy:",
+          accuracy_score(y_test, predictions))
+    print("Precision:",
+          precision_score(
+              y_test, predictions, zero_division=0
+          ))
+    print("Recall:",
+          recall_score(
+              y_test, predictions, zero_division=0
+          ))
+    print("F1 Score:",
+          f1_score(
+              y_test, predictions, zero_division=0
+          ))
+
 ```
 **What it does:** Trains three SVMs inside the same pipeline. `class_weight="balanced"` gives more importance to the minority (spam) class.
 
@@ -302,8 +437,26 @@ for kernel in ["linear", "rbf", "poly"]:
 
 #### Q14. Analyze margin separation and support vectors
 ```python
-svm_classifier.n_support_        # [8 4]
-svm_classifier.coef_             # feature weights (linear kernel)
+
+svm_model = svm_models["linear"]
+
+svm_classifier = svm_model.named_steps["classifier"]
+
+print("Support vectors per class:")
+print(svm_classifier.n_support_)
+
+print("\nTotal Support Vectors:")
+print(svm_classifier.n_support_.sum())
+
+print("\nSupport vectors as a percentage of training data:")
+print(round(
+    svm_classifier.n_support_.sum()
+    / len(X_train) * 100, 2
+), "%")
+
+print("\nLinear SVM Coefficients:")
+print(svm_classifier.coef_)
+
 ```
 - Support vectors: **8** (class 0) + **4** (class 1) = **12**
 - That is only **0.29 %** of the training data
@@ -312,6 +465,59 @@ svm_classifier.coef_             # feature weights (linear kernel)
 **✅ Conclusion:** Only 12 points define the whole boundary, which indicates a **wide, clean margin** between spam and non-spam. `num_special_chars` is by far the most influential feature in the linear SVM.
 
 #### Q15. Compare SVM performance with KNN
+
+```
+
+comparison = []
+
+# KNN evaluation
+knn_predictions = knn_model.predict(X_test)
+
+comparison.append({
+    "Model": "KNN (K=5)",
+    "Accuracy": accuracy_score(y_test, knn_predictions),
+    "Precision": precision_score(
+        y_test, knn_predictions, zero_division=0
+    ),
+    "Recall": recall_score(
+        y_test, knn_predictions, zero_division=0
+    ),
+    "F1 Score": f1_score(
+        y_test, knn_predictions, zero_division=0
+    )
+})
+
+# SVM evaluation
+for kernel, model in svm_models.items():
+    predictions = model.predict(X_test)
+
+    comparison.append({
+        "Model": "SVM (" + kernel + ")",
+        "Accuracy": accuracy_score(y_test, predictions),
+        "Precision": precision_score(
+            y_test, predictions, zero_division=0
+        ),
+        "Recall": recall_score(
+            y_test, predictions, zero_division=0
+        ),
+        "F1 Score": f1_score(
+            y_test, predictions, zero_division=0
+        )
+    })
+
+comparison_df = pd.DataFrame(comparison)
+
+print(comparison_df.round(3).to_string(index=False))
+
+plt.figure(figsize=(9, 5))
+plt.bar(comparison_df["Model"], comparison_df["Accuracy"])
+plt.xlabel("Model")
+plt.ylabel("Accuracy")
+plt.title("KNN vs SVM Performance Comparison")
+plt.xticks(rotation=30)
+plt.tight_layout()
+plt.show()
+```
 **What it does:** Collects Accuracy / Precision / Recall / F1 for KNN (K = 5) and the three SVMs in one table and draws a bar chart.  
 **✅ Conclusion:** KNN and all SVM kernels score **1.0 on every metric**, so on this dataset there is no performance difference. SVM is more compact (uses only 12 support vectors) and predicts faster, while KNN must store and search all training data.
 
@@ -321,26 +527,75 @@ svm_classifier.coef_             # feature weights (linear kernel)
 
 #### Q16. Implement Naive Bayes classifier
 ```python
-nb_model = Pipeline([("preprocessing", preprocessor), ("classifier", GaussianNB())])
+nb_model = Pipeline([
+    ("preprocessing", preprocessor),
+    ("classifier", GaussianNB())
+])
+
+# Train the model
 nb_model.fit(X_train, y_train)
+
+# Make predictions
+y_pred_nb = nb_model.predict(X_test)
+
+# Evaluate model
+print("Naive Bayes Accuracy:",
+      accuracy_score(y_test, y_pred_nb))
+
+print("\nClassification Report:")
+print(classification_report(
+    y_test, y_pred_nb, zero_division=0
+))
 ```
 **What it does:** Trains **Gaussian** Naive Bayes (suitable for continuous numerical features) and prints accuracy and the classification report.  
 **✅ Conclusion:** Naive Bayes also reaches **Accuracy = 1.0** with perfect precision and recall for both classes.
 
 #### Q18. Demonstrate Bayes' Theorem
 ```python
+
+# Example probabilities
 p_spam = 0.40
 p_url_given_spam = 0.75
 p_url_given_not_spam = 0.20
-p_url = p_url_given_spam*p_spam + p_url_given_not_spam*(1-p_spam)   # = 0.42
-p_spam_given_url = p_url_given_spam * p_spam / p_url                 # = 0.714
+
+p_not_spam = 1 - p_spam
+
+# Total probability of a URL
+p_url = (
+    p_url_given_spam * p_spam
+    + p_url_given_not_spam * p_not_spam
+)
+
+# Bayes' theorem
+p_spam_given_url = (
+    p_url_given_spam * p_spam / p_url
+)
+
+print("Probability of Spam:", p_spam)
+print("Probability of URL:", p_url)
+print("Probability of Spam given URL:", p_spam_given_url)
+
 ```
 **What it does:** Works through Bayes' theorem by hand. First the total probability of a URL is found (0.42), then the posterior.  
 **✅ Conclusion:** A message containing a URL has a **71.4 % probability of being spam**, up from the prior of 40 %. This shows how evidence (a URL) updates our belief.
 
 #### Q19. Compare theoretical probabilities with model predictions
 ```python
-(comparison["Actual"] == comparison["Naive_Bayes_Predicted"]).mean()   # 1.0
+
+# Compare actual labels and Naive Bayes predictions
+comparison = pd.DataFrame({
+    "Actual": y_test,
+    "Naive_Bayes_Predicted": y_pred_nb
+})
+
+print(comparison.head(10))
+
+print("\nPrediction Agreement:")
+print(
+    (comparison["Actual"] ==
+     comparison["Naive_Bayes_Predicted"]).mean()
+)
+
 ```
 **What it does:** Places actual labels beside Naive Bayes predictions and measures the agreement.  
 **✅ Conclusion:** Agreement is **100 %**. The theoretical example (Q18) and the trained model follow the same principle — pick the class with the highest posterior — and in this dataset the strong signals (URLs, spam keywords) make the predictions match the real labels.
@@ -351,7 +606,60 @@ p_spam_given_url = p_url_given_spam * p_spam / p_url                 # = 0.714
 
 #### Q20–Q21. Compare KNN vs SVM vs Naive Bayes
 ```python
-models = {"KNN": y_pred_knn, "SVM": y_pred_svm, "Naive Bayes": y_pred_nb}
+y_pred_knn = knn_model.predict(X_test)
+y_pred_svm = svm_model.predict(X_test)
+y_pred_nb = nb_model.predict(X_test)
+
+# Compare models
+models = {
+    "KNN": y_pred_knn,
+    "SVM": y_pred_svm,
+    "Naive Bayes": y_pred_nb
+}
+
+results = []
+
+for name, predictions in models.items():
+    results.append({
+        "Model": name,
+        "Accuracy": accuracy_score(y_test, predictions),
+        "Precision": precision_score(
+            y_test, predictions, average="binary",
+            zero_division=0
+        ),
+        "Recall": recall_score(
+            y_test, predictions, average="binary",
+            zero_division=0
+        ),
+        "F1 Score": f1_score(
+            y_test, predictions, average="binary",
+            zero_division=0
+        )
+    })
+
+results_df = pd.DataFrame(results)
+
+print("Model Comparison:")
+print(results_df.round(4))
+
+# Create comparison graph
+metrics = ["Accuracy", "Precision", "Recall", "F1 Score"]
+
+ax = results_df.set_index("Model")[metrics].plot(
+    kind="bar",
+    figsize=(10, 6),
+    width=0.8
+)
+
+plt.title("KNN vs SVM vs Naive Bayes")
+plt.xlabel("Classification Models")
+plt.ylabel("Score")
+plt.ylim(0, 1.05)
+plt.xticks(rotation=0)
+plt.legend(title="Metrics")
+plt.grid(axis="y", linestyle="--", alpha=0.4)
+plt.tight_layout()
+plt.show()
 ```
 **What it does:** Computes Accuracy, Precision, Recall and F1 for all three models, stores them in `results_df` and plots a grouped bar chart.
 
@@ -365,8 +673,21 @@ models = {"KNN": y_pred_knn, "SVM": y_pred_svm, "Naive Bayes": y_pred_nb}
 
 #### Q22. Identify the best model
 ```python
-results_df.loc[results_df["Precision"].idxmax()]
-results_df.loc[results_df["Recall"].idxmax()]
+
+best_precision_model = results_df.loc[
+    results_df["Precision"].idxmax()
+]
+
+best_recall_model = results_df.loc[
+    results_df["Recall"].idxmax()
+]
+
+print("Best Model for High Precision:")
+print(best_precision_model)
+
+print("\nBest Model for High Recall:")
+print(best_recall_model)
+
 ```
 **What it does:** Finds the model with the highest precision and the highest recall.  
 **✅ Conclusion:** Because all scores are tied at 1.0, `idxmax()` simply returns the first row (**KNN**). In practice:
